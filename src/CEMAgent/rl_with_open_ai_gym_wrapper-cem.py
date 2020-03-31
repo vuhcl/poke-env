@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import tensorflow as tf
+import pandas as pd
 
 from poke_env.player_configuration import PlayerConfiguration
 from poke_env.player.env_player import Gen7EnvSinglePlayer
@@ -72,26 +73,42 @@ class MaxDamagePlayer(RandomPlayer):
 NB_TRAINING_STEPS = 10000
 NB_EVALUATION_EPISODES = 100
 
+# variable for naming .csv files.
+# Change this according to whether the training process was carried out against a random player or a max damage player
+TRAINING_OPPONENT = 'RandomPlayer'
+
 tf.random.set_seed(0)
 np.random.seed(0)
 
 
 # This is the function that will be used to train the dqn
-def dqn_training(player, dqn, nb_steps):
-    dqn.fit(player, nb_steps=nb_steps)
+def dqn_training(player, dqn, nb_steps, filename):
+    model = dqn.fit(player, nb_steps=nb_steps)
+    # save model history to csv
+    save_file = f"{filename}_trainlog_{nb_steps}eps.csv"
+    print("===============================================")
+    print(f"Saving model history as {save_file}")
+    print("===============================================")
+    pd.DataFrame(model.history).to_csv(save_file)
     player.complete_current_battle()
 
 
-def dqn_evaluation(player, dqn, nb_episodes):
+def dqn_evaluation(player, dqn, nb_episodes, filename):
     # Reset battle statistics
     player.reset_battles()
-    dqn.test(player, nb_episodes=nb_episodes, visualize=False, verbose=False)
+    model = dqn.test(player, nb_episodes=nb_episodes, visualize=False, verbose=False)
 
+    # save model history to csv
+    save_file = f"{filename}_testlog_{nb_episodes}eps.csv"
+    print("===============================================")
+    print(f"Saving model history as {save_file}")
+    print("===============================================")
+    pd.DataFrame(model.history).to_csv(save_file)
+    
     print(
-        "DQN Evaluation: %d victories out of %d episodes"
-        % (player.n_won_battles, nb_episodes)
-    )
-
+          "CEM Evaluation: %d victories out of %d episodes"
+          % (player.n_won_battles, nb_episodes)
+          )
 
 if __name__ == "__main__":
     env_player = SimpleRLPlayer(
@@ -134,7 +151,7 @@ if __name__ == "__main__":
 
     # Defining our DQN
     dqn = CEMAgent(model=model, nb_actions=n_action, memory=memory,
-                   batch_size=50, nb_steps_warmup=10, train_interval=50, elite_frac=0.05)
+                   batch_size=50, nb_steps_warmup=1000, train_interval=50, elite_frac=0.05)
     
 
     dqn.compile()
@@ -143,7 +160,7 @@ if __name__ == "__main__":
     env_player.play_against(
         env_algorithm=dqn_training,
         opponent=opponent,
-        env_algorithm_kwargs={"dqn": dqn, "nb_steps": NB_TRAINING_STEPS},
+                            env_algorithm_kwargs={"dqn": dqn, "nb_steps": NB_TRAINING_STEPS, "filename": TRAINING_OPPONENT},
     )
     model.save("model_%d" % NB_TRAINING_STEPS)
 
@@ -152,12 +169,12 @@ if __name__ == "__main__":
     env_player.play_against(
         env_algorithm=dqn_evaluation,
         opponent=opponent,
-        env_algorithm_kwargs={"dqn": dqn, "nb_episodes": NB_EVALUATION_EPISODES},
+        env_algorithm_kwargs={"dqn": dqn, "nb_episodes": NB_EVALUATION_EPISODES, "filename": f'({TRAINING_OPPONENT}_{NB_TRAINING_STEPS})RandomPlayer'},
     )
 
     print("\nResults against max player:")
     env_player.play_against(
         env_algorithm=dqn_evaluation,
         opponent=second_opponent,
-        env_algorithm_kwargs={"dqn": dqn, "nb_episodes": NB_EVALUATION_EPISODES},
+        env_algorithm_kwargs={"dqn": dqn, "nb_episodes": NB_EVALUATION_EPISODES, "filename": f'({TRAINING_OPPONENT}_{NB_TRAINING_STEPS})MaxPlayer'},
     )
