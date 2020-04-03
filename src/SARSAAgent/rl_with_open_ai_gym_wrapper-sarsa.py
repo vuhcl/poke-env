@@ -138,7 +138,7 @@ if __name__ == "__main__":
     )
 
     # Defining our DQN
-    dqn = SARSAAgent(model=model, nb_actions=n_action, nb_steps_warmup=10, policy=policy)
+    dqn = SARSAAgent(model=model, nb_actions=n_action, nb_steps_warmup=1000, policy=policy)
 
     dqn.compile(Adam(lr=0.00025), metrics=["mae"])
 
