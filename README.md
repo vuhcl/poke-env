@@ -14,7 +14,7 @@ This project aims at providing a Python environment for interacting in [pokemon 
 
 Documentation and detailed examples can be found [here](https://poke-env.readthedocs.io/en/latest/).
 
-Examples and starting code can be found [here](https://github.com/hsahovic/poke-env/tree/master/examples).
+Examples and starting code can be found [here](https://github.com/nicolenair/poke-env/tree/67c0b835ccf6d4040eaae214026bf651b2151eec/examples).
 
 ## Installation
 
@@ -24,10 +24,10 @@ This project requires python >= 3.6 and a [Pokemon Showdown](https://github.com/
 pip install poke-env
 ```
 
-You can use [smogon's server](https://play.pokemonshowdown.com/) to try out your agents against humans, but having a development server is strongly recommended. In particular, [this showdown fork](https://github.com/hsahovic/Pokemon-Showdown) is optimized for performance and can be used locally **without authentication**:
+You can use [smogon's server](https://play.pokemonshowdown.com/) to try out your agents against humans, but having a development server is strongly recommended. In particular, [this showdown fork](https://github.com/vuhcl/Pokemon-Showdown) is optimized for performance and can be used locally **without authentication**:
 
 ```
-git clone https://github.com/hsahovic/Pokemon-Showdown.git
+git clone https://github.com/vuhcl/Pokemon-Showdown.git
 ```
 
 ### Development version
@@ -35,7 +35,7 @@ git clone https://github.com/hsahovic/Pokemon-Showdown.git
 You can also install the latest master version with:
 
 ```
-git clone https://github.com/hsahovic/poke-env.git
+git clone https://github.com/nicolenair/poke-env.git
 ```
 
 Dependencies and development dependencies can then be installed with:
