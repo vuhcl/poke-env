@@ -43,8 +43,8 @@ Dependencies and development dependencies can then be installed with:
 ```
 pip install -r requirements.txt
 pip install -r requirements-dev.txt
-**EDIT: for this fork, we recommend that you 'pip install -r requirements-clean.txt'**
 ```
+**EDIT: for this fork, we recommend that you 'pip install -r requirements-clean.txt' instead of the commands above**
 
 ## Acknowledgements
 
