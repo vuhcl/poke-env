@@ -70,7 +70,7 @@ class MaxDamagePlayer(RandomPlayer):
             return self.choose_random_move(battle)
 
 
-NB_TRAINING_STEPS = 10000
+NB_TRAINING_STEPS = 30000
 NB_EVALUATION_EPISODES = 100
 
 # variable for naming .csv files.
@@ -132,12 +132,23 @@ if __name__ == "__main__":
     # Output dimension
     n_action = len(env_player.action_space)
 
+#    model = Sequential()
+#    model.add(Dense(128, activation="elu", input_shape=(1, 10)))
+#    model.add(Flatten())
+#    model.add(Dense(n_action))
+#    model.add(Activation('softmax'))
+    memory = EpisodeParameterMemory(limit=10000, window_length=1)
+# Option 2: deep network
     model = Sequential()
-    model.add(Dense(128, activation="elu", input_shape=(1, 10)))
-    model.add(Flatten())
+    model.add(Flatten(input_shape=(1, 10)))
+    model.add(Dense(16))
+    model.add(Activation('relu'))
+    model.add(Dense(16))
+    model.add(Activation('relu'))
+    model.add(Dense(16))
+    model.add(Activation('relu'))
     model.add(Dense(n_action))
     model.add(Activation('softmax'))
-    memory = EpisodeParameterMemory(limit=10000, window_length=1)
 
     # Ssimple epsilon greedy
     policy = LinearAnnealedPolicy(
