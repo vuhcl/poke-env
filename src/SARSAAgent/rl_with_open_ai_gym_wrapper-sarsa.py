@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import numpy as np
+import pandas as pd
 import tensorflow as tf
 
 from poke_env.player_configuration import PlayerConfiguration
@@ -8,12 +9,14 @@ from poke_env.player.random_player import RandomPlayer
 from poke_env.server_configuration import LocalhostServerConfiguration
 
 from rl.agents.sarsa import SARSAAgent
-from rl.policy import LinearAnnealedPolicy, EpsGreedyQPolicy
+from rl.policy import EpsGreedyQPolicy
 from rl.memory import SequentialMemory
 from tensorflow.keras.layers import Dense, Flatten
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.optimizers import Adam
 
+import sys
+sys.path.append("..") # Adds higher directory to python modules path.
 
 # We define our RL player
 # It needs a state embedder and a reward computer, hence these two methods
@@ -68,30 +71,47 @@ class MaxDamagePlayer(RandomPlayer):
         else:
             return self.choose_random_move(battle)
 
-
-NB_TRAINING_STEPS = 10000
+NB_TRAINING_STEPS = 100000
 NB_EVALUATION_EPISODES = 100
+
+# variable for naming .csv files.
+# Change this according to whether the training process was carried out against a random player or a max damage player
+TRAINING_OPPONENT = 'RandomPlayer'
 
 tf.random.set_seed(0)
 np.random.seed(0)
 
-
 # This is the function that will be used to train the dqn
-def dqn_training(player, dqn, nb_steps):
-    dqn.fit(player, nb_steps=nb_steps)
+def dqn_training(player, dqn, nb_steps, filename):
+
+    model = dqn.fit(player, nb_steps=nb_steps, visualize=False, verbose=2)
+
+    # save model history to csv
+    save_file = f"{filename}_trainlog_{nb_steps}eps.csv"
+    print("===============================================")
+    print(f"Saving model history as {save_file}")
+    print("===============================================")
+    pd.DataFrame(model.history).to_csv(save_file)
+
     player.complete_current_battle()
 
 
-def dqn_evaluation(player, dqn, nb_episodes):
+def dqn_evaluation(player, dqn, nb_episodes, filename):
     # Reset battle statistics
     player.reset_battles()
-    dqn.test(player, nb_episodes=nb_episodes, visualize=False, verbose=False)
+    model = dqn.test(player, nb_episodes=nb_episodes, visualize=False, verbose=False)
+
+    # save model history to csv
+    save_file = f"{filename}_testlog_{nb_episodes}eps.csv"
+    print("===============================================")
+    print(f"Saving model history as {save_file}")
+    print("===============================================")
+    pd.DataFrame(model.history).to_csv(save_file)
 
     print(
         "DQN Evaluation: %d victories out of %d episodes"
         % (player.n_won_battles, nb_episodes)
     )
-
 
 if __name__ == "__main__":
     env_player = SimpleRLPlayer(
@@ -125,28 +145,21 @@ if __name__ == "__main__":
     model.add(Dense(64, activation="elu"))
     model.add(Dense(n_action, activation="linear"))
 
-    memory = SequentialMemory(limit=10000, window_length=1)
+    memory = SequentialMemory(limit=100000, window_length=1)
 
-    # Ssimple epsilon greedy
-    policy = LinearAnnealedPolicy(
-        EpsGreedyQPolicy(),
-        attr="eps",
-        value_max=1.0,
-        value_min=0.05,
-        value_test=0,
-        nb_steps=10000,
-    )
+    # Epsilon greedy
+    policy = EpsGreedyQPolicy(0.05)
 
     # Defining our DQN
     dqn = SARSAAgent(model=model, nb_actions=n_action, nb_steps_warmup=1000, policy=policy)
 
-    dqn.compile(Adam(lr=0.00025), metrics=["mae"])
+    dqn.compile(Adam(lr=0.0025), metrics=["mae"])
 
     # Training
     env_player.play_against(
         env_algorithm=dqn_training,
         opponent=opponent,
-        env_algorithm_kwargs={"dqn": dqn, "nb_steps": NB_TRAINING_STEPS},
+        env_algorithm_kwargs={"dqn": dqn, "nb_steps": NB_TRAINING_STEPS, "filename": TRAINING_OPPONENT},
     )
     model.save("model_%d" % NB_TRAINING_STEPS)
 
@@ -155,12 +168,12 @@ if __name__ == "__main__":
     env_player.play_against(
         env_algorithm=dqn_evaluation,
         opponent=opponent,
-        env_algorithm_kwargs={"dqn": dqn, "nb_episodes": NB_EVALUATION_EPISODES},
+        env_algorithm_kwargs={"dqn": dqn, "nb_episodes": NB_EVALUATION_EPISODES, "filename": f'({TRAINING_OPPONENT}_{NB_TRAINING_STEPS})RandomPlayer'},
     )
 
     print("\nResults against max player:")
     env_player.play_against(
         env_algorithm=dqn_evaluation,
         opponent=second_opponent,
-        env_algorithm_kwargs={"dqn": dqn, "nb_episodes": NB_EVALUATION_EPISODES},
+        env_algorithm_kwargs={"dqn": dqn, "nb_episodes": NB_EVALUATION_EPISODES, "filename": f'({TRAINING_OPPONENT}_{NB_TRAINING_STEPS})MaxPlayer'},
     )
