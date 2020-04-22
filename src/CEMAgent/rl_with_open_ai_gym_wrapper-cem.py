@@ -2,10 +2,12 @@
 import numpy as np
 import tensorflow as tf
 import pandas as pd
+import json
 
 from poke_env.player_configuration import PlayerConfiguration
 from poke_env.player.env_player import Gen7EnvSinglePlayer
 from poke_env.player.random_player import RandomPlayer
+from poke_env.player.frozen_rl_player import FrozenRLPlayer
 from poke_env.server_configuration import LocalhostServerConfiguration
 
 from rl.agents.cem import CEMAgent
@@ -70,12 +72,12 @@ class MaxDamagePlayer(RandomPlayer):
             return self.choose_random_move(battle)
 
 
-NB_TRAINING_STEPS = 30000
+NB_TRAINING_STEPS = 10000
 NB_EVALUATION_EPISODES = 100
 
 # variable for naming .csv files.
 # Change this according to whether the training process was carried out against a random player or a max damage player
-TRAINING_OPPONENT = 'RandomPlayer'
+TRAINING_OPPONENT = 'FrozenRLPlayer'
 
 tf.random.set_seed(0)
 np.random.seed(0)
@@ -110,24 +112,33 @@ def dqn_evaluation(player, dqn, nb_episodes, filename):
           % (player.n_won_battles, nb_episodes)
           )
 
+
 if __name__ == "__main__":
     env_player = SimpleRLPlayer(
-        player_configuration=PlayerConfiguration("satunicarina", "L.M.Montgomery7"),
+        player_configuration=PlayerConfiguration("satunicarina", None),
         battle_format="gen7randombattle",
         server_configuration=LocalhostServerConfiguration,
     )
 
     opponent = RandomPlayer(
-        player_configuration=PlayerConfiguration("duanicarina", "L.M.Montgomery7"),
+        player_configuration=PlayerConfiguration("duanicarina", None),
         battle_format="gen7randombattle",
         server_configuration=LocalhostServerConfiguration,
     )
 
     second_opponent = MaxDamagePlayer(
-        player_configuration=PlayerConfiguration("tiganicarina", "L.M.Montgomery7"),
+        player_configuration=PlayerConfiguration("tiganicarina", None),
         battle_format="gen7randombattle",
         server_configuration=LocalhostServerConfiguration,
     )
+    
+    third_opponent = FrozenRLPlayer(
+                                    player_configuration=PlayerConfiguration("empatnicarina", None),
+                                    battle_format="gen7randombattle",
+                                    server_configuration=LocalhostServerConfiguration
+                                    )
+
+#    third_opponent = pickle.load("previousRLPlayer")
 
     # Output dimension
     n_action = len(env_player.action_space)
@@ -162,7 +173,7 @@ if __name__ == "__main__":
 
     # Defining our DQN
     dqn = CEMAgent(model=model, nb_actions=n_action, memory=memory,
-                   batch_size=50, nb_steps_warmup=1000, train_interval=50, elite_frac=0.05)
+                   batch_size=50, nb_steps_warmup=1000, train_interval=50, elite_frac=0.05, noise_ampl=4)
     
 
     dqn.compile()
@@ -170,7 +181,7 @@ if __name__ == "__main__":
     # Training
     env_player.play_against(
         env_algorithm=dqn_training,
-        opponent=opponent,
+        opponent=third_opponent,
                             env_algorithm_kwargs={"dqn": dqn, "nb_steps": NB_TRAINING_STEPS, "filename": TRAINING_OPPONENT},
     )
     model.save("model_%d" % NB_TRAINING_STEPS)
@@ -189,3 +200,13 @@ if __name__ == "__main__":
         opponent=second_opponent,
         env_algorithm_kwargs={"dqn": dqn, "nb_episodes": NB_EVALUATION_EPISODES, "filename": f'({TRAINING_OPPONENT}_{NB_TRAINING_STEPS})MaxPlayer'},
     )
+
+    print("\nResults against frozen rl player:")
+    env_player.play_against(
+                            env_algorithm=dqn_evaluation,
+                            opponent=third_opponent,
+                            env_algorithm_kwargs={"dqn": dqn, "nb_episodes": NB_EVALUATION_EPISODES, "filename": f'({TRAINING_OPPONENT}_{NB_TRAINING_STEPS})MaxPlayer'},
+                            )
+
+
+
