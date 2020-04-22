@@ -137,8 +137,7 @@ if __name__ == "__main__":
                                     battle_format="gen7randombattle",
                                     server_configuration=LocalhostServerConfiguration
                                     )
-
-#    third_opponent = pickle.load("previousRLPlayer")
+                                    #frozen_rl_player.py should be modified according to the model used
 
     # Output dimension
     n_action = len(env_player.action_space)
