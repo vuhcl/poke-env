@@ -123,7 +123,7 @@ class FrozenRLPlayer(Player):
             # Use trained rl model to select action
 
             if self.model_name == 'DQN' or self.model_name == 'SARSA':
-              # ONLY DQN AGENT SELECTS ACTIONS LIKE THIS
+              # ONLY DQN & SARSA AGENTS SELECT ACTIONS LIKE THIS
               battle_state = np.array([self.embed_battle(battle)])
               battle_state = battle_state.flatten()
               best_move = self.trained_rl_model.test_policy.select_action(battle_state)
