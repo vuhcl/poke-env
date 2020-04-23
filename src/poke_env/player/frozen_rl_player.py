@@ -1,23 +1,30 @@
 # -*- coding: utf-8 -*-
-"""This module defines a random players baseline
+"""
+This module defines a frozen RL player
 """
 
 from poke_env.player.player import Player
-from rl.memory import SequentialMemory, EpisodeParameterMemory
 import tensorflow as tf
 import numpy as np
-from rl.agents.cem import CEMAgent
-
-#modify model information according to your frozen model
-old_model = tf.keras.models.load_model('/Users/nicarinanan/Desktop/poke-env/model_10000')
-memory = EpisodeParameterMemory(limit=10000, window_length=1)
-dqn = CEMAgent(model=old_model, nb_actions=18, memory=memory,
-               batch_size=50, nb_steps_warmup=1000, train_interval=50, elite_frac=0.05, noise_ampl=4)
-##########################################################
 
 
 class FrozenRLPlayer(Player):
+
+    def __init__(self, trained_rl_model, model_name, *args, **kwargs):
+
+        # create trained_rl_model attribute from input parameter
+        self.trained_rl_model = trained_rl_model
+
+        # specify model name - changes the way the best move is selected
+        # since different models have different ways of choosing a best move
+        self.model_name = model_name
+
+        # inherit all attributes and methods from parent class
+        Player.__init__(self, *args, **kwargs)
+        
+        
     def embed_battle(self, battle):
+
         # -1 indicates that the move does not have a base power
         # or is not available
         moves_base_power = -np.ones(4)
@@ -49,11 +56,14 @@ class FrozenRLPlayer(Player):
                              ]
                             )
 
+
     def compute_reward(self, battle) -> float:
-        return self.reward_computing_helper(
-                                            battle, fainted_value=2, hp_value=1, victory_value=30
-                                            )
+
+        return self.reward_computing_helper(battle, fainted_value=2, hp_value=1, victory_value=30)
+
+
     def _action_to_move(self, action, battle) -> str:
+
         """Converts actions to move orders.
             
         The conversion is done as follows:
@@ -102,16 +112,29 @@ class FrozenRLPlayer(Player):
             return self.create_order(battle.available_switches[action - 12])
         else:
             return self.choose_random_move(battle)
-    def choose_move(self, battle):
-                # If the player can attack, it will
-        if battle.available_moves:
-            # Finds the best move among available ones
-            best_move = dqn.select_action([self.embed_battle(battle)])
-            return self._action_to_move(best_move, battle)
-#            return best_move
 
-                # If no attack is available, a random switch will be made
+            
+    def choose_move(self, battle):
+
+        # If the player can attack, it will
+        if battle.available_moves:
+
+            # Finds the best move among available ones
+            # Use trained rl model to select action
+
+            if self.model_name == 'DQN':
+              # ONLY DQN AGENT SELECTS ACTIONS LIKE THIS
+              battle_state = np.array([self.embed_battle(battle)])
+              battle_state = battle_state.flatten()
+              best_move = self.trained_rl_model.test_policy.select_action(battle_state)
+
+            else:
+              best_move = self.trained_rl_model.select_action([self.embed_battle(battle)])
+
+            return self._action_to_move(best_move, battle)
+            #return best_move
+
+        # If no attack is available, a random switch will be made
         else:
             return self.choose_random_move(battle)
-
 
