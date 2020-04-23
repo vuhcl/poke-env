@@ -122,7 +122,7 @@ class FrozenRLPlayer(Player):
             # Finds the best move among available ones
             # Use trained rl model to select action
 
-            if self.model_name == 'DQN':
+            if self.model_name == 'DQN' or self.model_name == 'SARSA':
               # ONLY DQN AGENT SELECTS ACTIONS LIKE THIS
               battle_state = np.array([self.embed_battle(battle)])
               battle_state = battle_state.flatten()
