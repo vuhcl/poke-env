@@ -46,6 +46,12 @@ class SimpleRLPlayer(Gen7EnvSinglePlayer):
             len([mon for mon in battle.opponent_team.values() if mon.fainted]) / 6
         )
 
+        print()
+        print(f"moves_base_power: {moves_base_power}")
+        print(f"moves_dmg_multiplier: {moves_dmg_multiplier}")
+        print(f"fainted_mon_team: {fainted_mon_team}")
+        print(f"fainted_mon_opponent: {fainted_mon_opponent}")
+
         final_state_vector = np.concatenate(
                                 [
                                     moves_base_power,
@@ -53,6 +59,8 @@ class SimpleRLPlayer(Gen7EnvSinglePlayer):
                                     [fainted_mon_team, fainted_mon_opponent],
                                 ]
                             )
+
+        print(f"Final state vector: {final_state_vector}")
 
         # Final vector with 10 components
         return final_state_vector
@@ -64,21 +72,8 @@ class SimpleRLPlayer(Gen7EnvSinglePlayer):
         )
 
 
-class MaxDamagePlayer(RandomPlayer):
-    def choose_move(self, battle):
-        # If the player can attack, it will
-        if battle.available_moves:
-            # Finds the best move among available ones
-            best_move = max(battle.available_moves, key=lambda move: move.base_power)
-            return self.create_order(best_move)
-
-        # If no attack is available, a random switch will be made
-        else:
-            return self.choose_random_move(battle)
-
-
-NB_TRAINING_STEPS = 20000
-NB_EVALUATION_EPISODES = 100
+NB_TRAINING_STEPS = 10
+NB_EVALUATION_EPISODES = 0
 
 # variable for naming .csv files. 
 # Change this according to whether the training process was carried out against a random player or a max damage player
@@ -91,33 +86,9 @@ np.random.seed(0)
 def dqn_training(player, dqn, nb_steps, filename):
     
     model = dqn.fit(player, nb_steps=nb_steps, visualize=False, verbose=2)
-    
-    # save model history to csv
-    save_file = f"{filename}_trainlog_{nb_steps}eps.csv"
-    print("===============================================")
-    print(f"Saving model history as {save_file}")
-    print("===============================================")
-    pd.DataFrame(model.history).to_csv(save_file)
 
     player.complete_current_battle()
 
-
-def dqn_evaluation(player, dqn, nb_episodes, filename):
-    # Reset battle statistics
-    player.reset_battles()
-    model = dqn.test(player, nb_episodes=nb_episodes, visualize=False, verbose=False)
-
-    # save model history to csv
-    save_file = f"{filename}_testlog_{nb_episodes}eps.csv"
-    print("===============================================")
-    print(f"Saving model history as {save_file}")
-    print("===============================================")
-    pd.DataFrame(model.history).to_csv(save_file)
-
-    print(
-        "DQN Evaluation: %d victories out of %d episodes"
-        % (player.n_won_battles, nb_episodes)
-    )
 
 
 if __name__ == "__main__":
@@ -129,12 +100,6 @@ if __name__ == "__main__":
 
     random_opponent = RandomPlayer(
         player_configuration=PlayerConfiguration("RandomPlayer2", "L.M.Montgomery7"),
-        battle_format="gen7randombattle",
-        server_configuration=LocalhostServerConfiguration,
-    )
-
-    max_opponent = MaxDamagePlayer(
-        player_configuration=PlayerConfiguration("MaxDamagePlayer", "L.M.Montgomery7"),
         battle_format="gen7randombattle",
         server_configuration=LocalhostServerConfiguration,
     )
@@ -154,6 +119,23 @@ if __name__ == "__main__":
 
     memory = SequentialMemory(limit=10000, window_length=1)
 
+
+    ############### print model deets ###############
+    print(f"Model summary: {model.summary()}")
+
+    inp = np.concatenate([
+        [1.1, 0.8, 0., 1.3],
+        [0.5, 0.5, 1., 1.], 
+        [0.83333333, 0.83333333]
+    ])
+
+    inp = np.reshape(inp,(1,1,10))
+    print(f"Example model input: {inp}")
+
+    output = model.predict(inp)
+    print(f"Model output: {output}")
+    #################################################
+
     # Simple epsilon greedy
     policy = LinearAnnealedPolicy(
         EpsGreedyQPolicy(),
@@ -170,7 +152,7 @@ if __name__ == "__main__":
         nb_actions=18,
         policy=policy,
         memory=memory,
-        nb_steps_warmup=1000,
+        nb_steps_warmup=1,
         gamma=0.5,
         target_model_update=1,
         delta_clip=0.01,
@@ -180,25 +162,16 @@ if __name__ == "__main__":
     dqn.compile(Adam(lr=0.00025), metrics=["mae"])
 
 
+
+
     # Training
     env_player.play_against(
         env_algorithm=dqn_training,
-        opponent=max_opponent,
+        opponent=random_opponent,
         env_algorithm_kwargs={"dqn": dqn, "nb_steps": NB_TRAINING_STEPS, "filename": TRAINING_OPPONENT},
     )
-    model.save("model_%d" % NB_TRAINING_STEPS)
 
-    # Evaluation
-    print("Results against random player:")
-    env_player.play_against(
-        env_algorithm=dqn_evaluation,
-        opponent=random_opponent,
-        env_algorithm_kwargs={"dqn": dqn, "nb_episodes": NB_EVALUATION_EPISODES, "filename": f'({TRAINING_OPPONENT}_{NB_TRAINING_STEPS})RandomPlayer'},
-    )
 
-    print("\nResults against max player:")
-    env_player.play_against(
-        env_algorithm=dqn_evaluation,
-        opponent=max_opponent,
-        env_algorithm_kwargs={"dqn": dqn, "nb_episodes": NB_EVALUATION_EPISODES, "filename": f'({TRAINING_OPPONENT}_{NB_TRAINING_STEPS})MaxPlayer'},
-    )
+
+
+
