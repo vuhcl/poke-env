@@ -3,6 +3,7 @@ import numpy as np
 import tensorflow as tf
 import pandas as pd
 import json
+import random
 
 from poke_env.player_configuration import PlayerConfiguration
 from poke_env.player.env_player import Gen7EnvSinglePlayer
@@ -72,20 +73,22 @@ class MaxDamagePlayer(RandomPlayer):
             return self.choose_random_move(battle)
 
 
+
+
 NB_TRAINING_STEPS = 10000
 NB_EVALUATION_EPISODES = 100
 
 # variable for naming .csv files.
 # Change this according to whether the training process was carried out against a random player or a max damage player
-TRAINING_OPPONENT = 'FrozenRLPlayer'
+TRAINING_OPPONENT = 'RandomPlayer'
 
 tf.random.set_seed(0)
 np.random.seed(0)
 
 
-# This is the function that will be used to train the dqn
-def dqn_training(player, dqn, nb_steps, filename):
-    model = dqn.fit(player, nb_steps=nb_steps)
+# This is the function that will be used to train the agent
+def agent_training(player, agent, nb_steps, filename):
+    model = agent.fit(player, nb_steps=nb_steps)
     # save model history to csv
     save_file = f"{filename}_trainlog_{nb_steps}eps.csv"
     print("===============================================")
@@ -95,10 +98,10 @@ def dqn_training(player, dqn, nb_steps, filename):
     player.complete_current_battle()
 
 
-def dqn_evaluation(player, dqn, nb_episodes, filename):
+def agent_evaluation(player, agent, nb_episodes, filename):
     # Reset battle statistics
     player.reset_battles()
-    model = dqn.test(player, nb_episodes=nb_episodes, visualize=False, verbose=False)
+    model = agent.test(player, nb_episodes=nb_episodes, visualize=False, verbose=False)
 
     # save model history to csv
     save_file = f"{filename}_testlog_{nb_episodes}eps.csv"
@@ -112,7 +115,22 @@ def dqn_evaluation(player, dqn, nb_episodes, filename):
           % (player.n_won_battles, nb_episodes)
           )
 
+########################## Trained RL Model variables ##########################
 
+### CHANGE THIS IF YOU'RE NOT USING A CEM MODEL - REFER TO frozen_rl_player.py FOR MORE DETAILS
+MODEL_NAME = 'CEM'
+
+### CHANGE THE LOAD MODEL DIRECTORY ACCORDING TO LOCAL SETUP ###
+loaded_model = tf.keras.models.load_model('/Users/nicarinanan/Desktop/poke-env/modelmax_20000')
+
+### CHANGE AGENT DETAILS ACCORDING TO THE SAVED MODEL AGENT TYPE ###
+memory = EpisodeParameterMemory(limit=10000, window_length=1)
+
+# load saved model into CEMAgent class
+trained_agent = CEMAgent(model=loaded_model, nb_actions=18, memory=memory,
+               batch_size=50, nb_steps_warmup=1000, train_interval=50, elite_frac=0.05, noise_ampl=0)
+
+##############################################################################
 if __name__ == "__main__":
     env_player = SimpleRLPlayer(
         player_configuration=PlayerConfiguration("satunicarina", None),
@@ -132,12 +150,9 @@ if __name__ == "__main__":
         server_configuration=LocalhostServerConfiguration,
     )
     
-    third_opponent = FrozenRLPlayer(
-                                    player_configuration=PlayerConfiguration("empatnicarina", None),
-                                    battle_format="gen7randombattle",
-                                    server_configuration=LocalhostServerConfiguration
-                                    )
-                                    #frozen_rl_player.py should be modified according to the model used
+    third_opponent = FrozenRLPlayer(player_configuration=PlayerConfiguration("empatnicarina", None), battle_format="gen7randombattle", server_configuration=LocalhostServerConfiguration,         trained_rl_model=trained_agent,
+        model_name = MODEL_NAME,)
+
 
     # Output dimension
     n_action = len(env_player.action_space)
@@ -169,42 +184,45 @@ if __name__ == "__main__":
         value_test=0,
         nb_steps=10000,
     )
+    
+#    #only uncomment below line for preserved model self-play
+#    model = tf.keras.models.load_model('/Users/nicarinanan/Desktop/poke-env/modelpostmax2preserve_20000')
 
-    # Defining our DQN
-    dqn = CEMAgent(model=model, nb_actions=n_action, memory=memory,
+    # Defining our agent
+    agent = CEMAgent(model=model, nb_actions=n_action, memory=memory,
                    batch_size=50, nb_steps_warmup=1000, train_interval=50, elite_frac=0.05, noise_ampl=4)
     
 
-    dqn.compile()
+    agent.compile()
 
     # Training
     env_player.play_against(
-        env_algorithm=dqn_training,
+        env_algorithm=agent_training,
         opponent=third_opponent,
-                            env_algorithm_kwargs={"dqn": dqn, "nb_steps": NB_TRAINING_STEPS, "filename": TRAINING_OPPONENT},
+                            env_algorithm_kwargs={"agent": agent, "nb_steps": NB_TRAINING_STEPS, "filename": TRAINING_OPPONENT+"TESTFREEZE"},
     )
-    model.save("model_%d" % NB_TRAINING_STEPS)
+    model.save("model_TESTFREEZE%d" % NB_TRAINING_STEPS)
 
     # Evaluation
     print("Results against random player:")
     env_player.play_against(
-        env_algorithm=dqn_evaluation,
+        env_algorithm=agent_evaluation,
         opponent=opponent,
-        env_algorithm_kwargs={"dqn": dqn, "nb_episodes": NB_EVALUATION_EPISODES, "filename": f'({TRAINING_OPPONENT}_{NB_TRAINING_STEPS})RandomPlayer'},
+        env_algorithm_kwargs={"agent": agent, "nb_episodes": NB_EVALUATION_EPISODES, "filename": f'({TRAINING_OPPONENT}_{NB_TRAINING_STEPS})RandomPlayerTESTFREEZE'},
     )
 
     print("\nResults against max player:")
     env_player.play_against(
-        env_algorithm=dqn_evaluation,
+        env_algorithm=agent_evaluation,
         opponent=second_opponent,
-        env_algorithm_kwargs={"dqn": dqn, "nb_episodes": NB_EVALUATION_EPISODES, "filename": f'({TRAINING_OPPONENT}_{NB_TRAINING_STEPS})MaxPlayer'},
+        env_algorithm_kwargs={"agent": agent, "nb_episodes": NB_EVALUATION_EPISODES, "filename": f'({TRAINING_OPPONENT}_{NB_TRAINING_STEPS})MaxPlayerTESTFREEZE'},
     )
 
     print("\nResults against frozen rl player:")
     env_player.play_against(
-                            env_algorithm=dqn_evaluation,
+                            env_algorithm=agent_evaluation,
                             opponent=third_opponent,
-                            env_algorithm_kwargs={"dqn": dqn, "nb_episodes": NB_EVALUATION_EPISODES, "filename": f'({TRAINING_OPPONENT}_{NB_TRAINING_STEPS})MaxPlayer'},
+                            env_algorithm_kwargs={"agent": agent, "nb_episodes": NB_EVALUATION_EPISODES, "filename": f'({TRAINING_OPPONENT}_{NB_TRAINING_STEPS})FrozenRLPlayerTESTFREEZE'},
                             )
 
 
