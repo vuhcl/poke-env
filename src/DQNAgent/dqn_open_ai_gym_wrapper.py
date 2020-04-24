@@ -78,13 +78,13 @@ class MaxDamagePlayer(RandomPlayer):
 
 
 # ADJUST VARIABLES ACCORDINGLY
-NB_TRAINING_STEPS = 10
-NB_EVALUATION_EPISODES = 1
-NB_STEPS_WARMUP = 1
+NB_TRAINING_STEPS = 20000
+NB_EVALUATION_EPISODES = 1000
+NB_STEPS_WARMUP = 1000
 
 # Change this according to the model specified under #### TRAINING ####
 # for proper naming of the .csv files (train and test logs, results)
-TRAINING_OPPONENT = 'MaxPlayer' 
+TRAINING_OPPONENT = 'PretrainedRLPlayer' 
 
 
 
@@ -94,7 +94,7 @@ TRAINING_OPPONENT = 'MaxPlayer'
 MODEL_NAME = 'DQN' 
 
 ### CHANGE THE LOAD MODEL DIRECTORY ACCORDING TO LOCAL SETUP ###
-loaded_model = tf.keras.models.load_model('old_model/model_20000')
+loaded_model = tf.keras.models.load_model('old_model_20000')
 
 ### CHANGE AGENT DETAILS ACCORDING TO THE SAVED MODEL AGENT TYPE ###
 memory = SequentialMemory(limit=10000, window_length=1)
@@ -236,12 +236,12 @@ if __name__ == "__main__":
 
     env_player.play_against(
         env_algorithm=dqn_training,
-        opponent=max_opponent,
+        opponent=rl_opponent,
         env_algorithm_kwargs={"dqn": dqn, "nb_steps": NB_TRAINING_STEPS, "filename": TRAINING_OPPONENT},
     )
 
     ############################ Save Trained Model #################################
-    save_file_name = f"model_{NB_TRAINING_STEPS}"
+    save_file_name = f"saved_model_{NB_TRAINING_STEPS}"
     print(f"Saving model as {save_file_name}")
     model.save(save_file_name)
 
