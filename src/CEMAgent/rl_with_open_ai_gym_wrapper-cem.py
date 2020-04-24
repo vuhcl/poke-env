@@ -9,6 +9,7 @@ from poke_env.player_configuration import PlayerConfiguration
 from poke_env.player.env_player import Gen7EnvSinglePlayer
 from poke_env.player.random_player import RandomPlayer
 from poke_env.player.frozen_rl_player import FrozenRLPlayer
+from poke_env.player.frozen_rl_player_ratio import FrozenRLPlayerRatio
 from poke_env.server_configuration import LocalhostServerConfiguration
 
 from rl.agents.cem import CEMAgent
@@ -128,7 +129,7 @@ memory = EpisodeParameterMemory(limit=10000, window_length=1)
 
 # load saved model into CEMAgent class
 trained_agent = CEMAgent(model=loaded_model, nb_actions=18, memory=memory,
-               batch_size=50, nb_steps_warmup=1000, train_interval=50, elite_frac=0.05, noise_ampl=0)
+               batch_size=50, nb_steps_warmup=1000, train_interval=50, elite_frac=0.05, noise_ampl=4)
 
 ##############################################################################
 if __name__ == "__main__":
@@ -138,21 +139,23 @@ if __name__ == "__main__":
         server_configuration=LocalhostServerConfiguration,
     )
 
-    opponent = RandomPlayer(
+    random_opponent = RandomPlayer(
         player_configuration=PlayerConfiguration("duanicarina", None),
         battle_format="gen7randombattle",
         server_configuration=LocalhostServerConfiguration,
     )
 
-    second_opponent = MaxDamagePlayer(
+    maxdamage_opponent = MaxDamagePlayer(
         player_configuration=PlayerConfiguration("tiganicarina", None),
         battle_format="gen7randombattle",
         server_configuration=LocalhostServerConfiguration,
     )
     
-    third_opponent = FrozenRLPlayer(player_configuration=PlayerConfiguration("empatnicarina", None), battle_format="gen7randombattle", server_configuration=LocalhostServerConfiguration,         trained_rl_model=trained_agent,
+    frozen_opponent = FrozenRLPlayer(player_configuration=PlayerConfiguration("empatnicarina", None), battle_format="gen7randombattle", server_configuration=LocalhostServerConfiguration,         trained_rl_model=trained_agent,
         model_name = MODEL_NAME,)
-
+        
+    frozenratio_opponent = FrozenRLPlayerRatio(player_configuration=PlayerConfiguration("limanicarina", None), battle_format="gen7randombattle", server_configuration=LocalhostServerConfiguration,         trained_rl_model=trained_agent,
+        model_name = MODEL_NAME,)
 
     # Output dimension
     n_action = len(env_player.action_space)
@@ -186,7 +189,7 @@ if __name__ == "__main__":
     )
     
 #    #only uncomment below line for preserved model self-play
-#    model = tf.keras.models.load_model('/Users/nicarinanan/Desktop/poke-env/modelpostmax2preserve_20000')
+#    model = tf.keras.models.load_model('/Users/nicarinanan/Desktop/poke-env/modelpostmaxpreserved2_10000')
 
     # Defining our agent
     agent = CEMAgent(model=model, nb_actions=n_action, memory=memory,
@@ -198,31 +201,31 @@ if __name__ == "__main__":
     # Training
     env_player.play_against(
         env_algorithm=agent_training,
-        opponent=third_opponent,
-                            env_algorithm_kwargs={"agent": agent, "nb_steps": NB_TRAINING_STEPS, "filename": TRAINING_OPPONENT+"TESTFREEZE"},
+        opponent=random_opponent,
+                            env_algorithm_kwargs={"agent": agent, "nb_steps": NB_TRAINING_STEPS, "filename": TRAINING_OPPONENT},
     )
-    model.save("model_TESTFREEZE%d" % NB_TRAINING_STEPS)
+    model.save("model_%d" % NB_TRAINING_STEPS)
 
     # Evaluation
     print("Results against random player:")
     env_player.play_against(
         env_algorithm=agent_evaluation,
-        opponent=opponent,
-        env_algorithm_kwargs={"agent": agent, "nb_episodes": NB_EVALUATION_EPISODES, "filename": f'({TRAINING_OPPONENT}_{NB_TRAINING_STEPS})RandomPlayerTESTFREEZE'},
+        opponent=random_opponent,
+        env_algorithm_kwargs={"agent": agent, "nb_episodes": NB_EVALUATION_EPISODES, "filename": f'({TRAINING_OPPONENT}_{NB_TRAINING_STEPS})RandomPlayer'},
     )
 
     print("\nResults against max player:")
     env_player.play_against(
         env_algorithm=agent_evaluation,
-        opponent=second_opponent,
-        env_algorithm_kwargs={"agent": agent, "nb_episodes": NB_EVALUATION_EPISODES, "filename": f'({TRAINING_OPPONENT}_{NB_TRAINING_STEPS})MaxPlayerTESTFREEZE'},
+        opponent=maxdamage_opponent,
+        env_algorithm_kwargs={"agent": agent, "nb_episodes": NB_EVALUATION_EPISODES, "filename": f'({TRAINING_OPPONENT}_{NB_TRAINING_STEPS})MaxPlayer'},
     )
 
     print("\nResults against frozen rl player:")
     env_player.play_against(
                             env_algorithm=agent_evaluation,
-                            opponent=third_opponent,
-                            env_algorithm_kwargs={"agent": agent, "nb_episodes": NB_EVALUATION_EPISODES, "filename": f'({TRAINING_OPPONENT}_{NB_TRAINING_STEPS})FrozenRLPlayerTESTFREEZE'},
+                            opponent=frozen_opponent,
+                            env_algorithm_kwargs={"agent": agent, "nb_episodes": NB_EVALUATION_EPISODES, "filename": f'({TRAINING_OPPONENT}_{NB_TRAINING_STEPS})FrozenRLPlayer'},
                             )
 
 
