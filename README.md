@@ -19,9 +19,9 @@ Touch a lot on the original author’s stuff
 
 This repo contains three different Keras RL agents from the keras-rl2 library that was used to train the Pokemon Showdown agents. The implementations and their directories are listed below:
 
-SARSA in the `SARSAAgent` directory
-Deep Q-Network (DQN) in the `DQNAgent` directory
-Cross-entropy Method (CEM) in the `CEMAgent` directory
++ SARSA in the `SARSAAgent` directory
++ Deep Q-Network (DQN) in the `DQNAgent` directory
++ Cross-entropy Method (CEM) in the `CEMAgent` directory
 
 Each agent was trained for a set amount of steps - `NB_TRAINING_STEPS` - and evaluated against an agent for a set amount of episodes - `NB_EVALUATION_EPISODES`. Both parameters can be modified in the individual agent wrapper files, as well as the main wrapper notebook.
 
@@ -53,6 +53,6 @@ This repository is forked from https://github.com/hsahovic/poke-env. Modificatio
 
 For a walkthrough on understanding Pokemon Showdown as an RL environment and utilizing this repository to train RL agents to compete in the Pokemon Showdown environment, please refer to the following blog posts:
 
-[Training a Pokemon Showdown agent using SARSA](https://medium.com/@vuhuychule/training-a-pok%C3%A9mon-battler-with-sarsa-algorithm-8ddee2c7732a)
-[Training a Pokemon Showdown agent using DQN](https://medium.com/@hueyninglok/dqn-agent-for-pokemon-showdown-98169ccb50a3)
-[Training a Pokemon Showdown agent using CEM](https://medium.com/@nicarina98/cross-entropy-method-for-training-a-pokemon-823d3590ae07)
++ [Training a Pokemon Showdown agent using SARSA](https://medium.com/@vuhuychule/training-a-pok%C3%A9mon-battler-with-sarsa-algorithm-8ddee2c7732a)
++ [Training a Pokemon Showdown agent using DQN](https://medium.com/@hueyninglok/dqn-agent-for-pokemon-showdown-98169ccb50a3)
++ [Training a Pokemon Showdown agent using CEM](https://medium.com/@nicarina98/cross-entropy-method-for-training-a-pokemon-823d3590ae07)
