@@ -10,11 +10,6 @@ A python interface for training Reinforcement Learning bots to battle on [pokemo
 
 This project aims at providing a Python environment for interacting in [pokemon showdown](https://pokemonshowdown.com/) battles, with reinforcement learning in mind.
 
-## Pokemon Showdown Environment
- Talk about poke-env briefly @vu
-Cloning repo and running the env
-Touch a lot on the original author’s stuff
-
 ## Keras RL Agents in Pokemon Showdown
 
 This repo contains three different Keras RL agents from the keras-rl2 library that was used to train the Pokemon Showdown agents. The implementations and their directories are listed below:
