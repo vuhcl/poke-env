@@ -22,7 +22,7 @@ Each agent was trained for a set amount of steps - `NB_TRAINING_STEPS` - and eva
 
 ## Instructions for Training
 
-+ Clone the repository and install all the requirements using ‘pip install requirements-clean.txt’ We recommend that you set up a virtual environment. Instructions for setting up a virtual environment are linked here.
++ Clone the repository and install all the requirements using ‘pip install requirements-clean.txt’ We recommend that you set up a virtual environment. Instructions for setting up a virtual environment are linked [here](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/).
 + You will also need to set up a Pokemon Showdown server to train your agents. This fork has been optimized for use with this poke-env repository: https://github.com/vuhcl/Pokemon-Showdown.git. Follow the installation instructions in the README to set up the server.
 + Two options:
   + run any of the three wrapper files from terminal
