@@ -80,7 +80,7 @@ NB_TRAINING_STEPS = 10000
 NB_EVALUATION_EPISODES = 100
 
 # variable for naming .csv files.
-# Change this according to whether the training process was carried out against a random player or a max damage player
+# Change this according to whether the training process was carried out against a random player or a max damage player or frozen player
 TRAINING_OPPONENT = 'RandomPlayer'
 FROZEN_RL_PRESENT = True
 
