@@ -82,6 +82,7 @@ NB_EVALUATION_EPISODES = 100
 # variable for naming .csv files.
 # Change this according to whether the training process was carried out against a random player or a max damage player
 TRAINING_OPPONENT = 'RandomPlayer'
+FROZEN_RL_PRESENT = True
 
 tf.random.set_seed(0)
 np.random.seed(0)
@@ -116,20 +117,21 @@ def agent_evaluation(player, agent, nb_episodes, filename):
           % (player.n_won_battles, nb_episodes)
           )
 
-########################## Trained RL Model variables ##########################
+########################## Frozen RL Model variables ##########################
 
-### CHANGE THIS IF YOU'RE NOT USING A CEM MODEL - REFER TO frozen_rl_player.py FOR MORE DETAILS
-MODEL_NAME = 'CEM'
+if FROZEN_RL_PRESENT:
+    ### CHANGE THIS IF YOU'RE NOT USING A CEM MODEL - REFER TO frozen_rl_player.py FOR MORE DETAILS
+    MODEL_NAME = 'CEM'
 
-### CHANGE THE LOAD MODEL DIRECTORY ACCORDING TO LOCAL SETUP ###
-loaded_model = tf.keras.models.load_model('/Users/nicarinanan/Desktop/poke-env/modelmax_20000')
+    ### CHANGE THE LOAD MODEL DIRECTORY ACCORDING TO LOCAL SETUP ###
+    loaded_model = tf.keras.models.load_model('/Users/nicarinanan/Desktop/poke-env/modelmax_20000')
 
-### CHANGE AGENT DETAILS ACCORDING TO THE SAVED MODEL AGENT TYPE ###
-memory = EpisodeParameterMemory(limit=10000, window_length=1)
+    ### CHANGE AGENT DETAILS ACCORDING TO THE SAVED MODEL AGENT TYPE ###
+    memory = EpisodeParameterMemory(limit=10000, window_length=1)
 
-# load saved model into CEMAgent class
-trained_agent = CEMAgent(model=loaded_model, nb_actions=18, memory=memory,
-               batch_size=50, nb_steps_warmup=1000, train_interval=50, elite_frac=0.05, noise_ampl=4)
+    # load saved model into CEMAgent class
+    trained_agent = CEMAgent(model=loaded_model, nb_actions=18, memory=memory,
+                   batch_size=50, nb_steps_warmup=1000, train_interval=50, elite_frac=0.05, noise_ampl=4)
 
 ##############################################################################
 if __name__ == "__main__":
@@ -151,11 +153,12 @@ if __name__ == "__main__":
         server_configuration=LocalhostServerConfiguration,
     )
     
-    frozen_opponent = FrozenRLPlayer(player_configuration=PlayerConfiguration("empatnicarina", None), battle_format="gen7randombattle", server_configuration=LocalhostServerConfiguration,         trained_rl_model=trained_agent,
-        model_name = MODEL_NAME,)
-        
-    frozenratio_opponent = FrozenRLPlayerRatio(player_configuration=PlayerConfiguration("limanicarina", None), battle_format="gen7randombattle", server_configuration=LocalhostServerConfiguration,         trained_rl_model=trained_agent,
-        model_name = MODEL_NAME,)
+    if FROZEN_RL_PRESENT:
+        frozen_opponent = FrozenRLPlayer(player_configuration=PlayerConfiguration("empatnicarina", None), battle_format="gen7randombattle", server_configuration=LocalhostServerConfiguration,         trained_rl_model=trained_agent,
+            model_name = MODEL_NAME,)
+            
+        frozenratio_opponent = FrozenRLPlayerRatio(player_configuration=PlayerConfiguration("limanicarina", None), battle_format="gen7randombattle", server_configuration=LocalhostServerConfiguration,         trained_rl_model=trained_agent,
+            model_name = MODEL_NAME,)
 
     # Output dimension
     n_action = len(env_player.action_space)
@@ -178,15 +181,6 @@ if __name__ == "__main__":
     model.add(Dense(n_action))
     model.add(Activation('softmax'))
 
-    # Ssimple epsilon greedy
-    policy = LinearAnnealedPolicy(
-        EpsGreedyQPolicy(),
-        attr="eps",
-        value_max=1.0,
-        value_min=0.05,
-        value_test=0,
-        nb_steps=10000,
-    )
     
 #    #only uncomment below line for preserved model self-play
 #    model = tf.keras.models.load_model('/Users/nicarinanan/Desktop/poke-env/modelpostmaxpreserved2_10000')
@@ -221,12 +215,14 @@ if __name__ == "__main__":
         env_algorithm_kwargs={"agent": agent, "nb_episodes": NB_EVALUATION_EPISODES, "filename": f'({TRAINING_OPPONENT}_{NB_TRAINING_STEPS})MaxPlayer'},
     )
 
-    print("\nResults against frozen rl player:")
-    env_player.play_against(
-                            env_algorithm=agent_evaluation,
-                            opponent=frozen_opponent,
-                            env_algorithm_kwargs={"agent": agent, "nb_episodes": NB_EVALUATION_EPISODES, "filename": f'({TRAINING_OPPONENT}_{NB_TRAINING_STEPS})FrozenRLPlayer'},
-                            )
+    if FROZEN_RL_PRESENT:
+
+        print("\nResults against frozen rl player:")
+        env_player.play_against(
+                                env_algorithm=agent_evaluation,
+                                opponent=frozen_opponent,
+                                env_algorithm_kwargs={"agent": agent, "nb_episodes": NB_EVALUATION_EPISODES, "filename": f'({TRAINING_OPPONENT}_{NB_TRAINING_STEPS})FrozenRLPlayer'},
+                                )
 
 
 
