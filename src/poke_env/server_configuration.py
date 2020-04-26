@@ -11,7 +11,7 @@ ServerConfiguration = namedtuple(
 and authentication endpoint url."""
 
 LocalhostServerConfiguration = ServerConfiguration(
-    "localhost:8000", "https://play.pokemonshowdown.com/action.php?"
+    "localhost:28487", "https://play.pokemonshowdown.com/action.php?"
 )
 """Server configuration with localhost and smogon's authentication endpoint."""
 

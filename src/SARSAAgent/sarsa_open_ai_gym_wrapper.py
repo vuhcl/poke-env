@@ -3,10 +3,15 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 
+import sys
+sys.path.append("..") # Adds higher directory to python modules path.
+
+# local python modules
 from poke_env.player_configuration import PlayerConfiguration
 from poke_env.player.env_player import Gen7EnvSinglePlayer
 from poke_env.player.random_player import RandomPlayer
 from poke_env.server_configuration import LocalhostServerConfiguration
+from poke_env.player.frozen_rl_player import FrozenRLPlayer
 
 from rl.agents.sarsa import SARSAAgent
 from rl.policy import EpsGreedyQPolicy
@@ -15,12 +20,11 @@ from tensorflow.keras.layers import Dense, Flatten
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.optimizers import Adam
 
-import sys
-sys.path.append("..") # Adds higher directory to python modules path.
 
 # We define our RL player
 # It needs a state embedder and a reward computer, hence these two methods
 class SimpleRLPlayer(Gen7EnvSinglePlayer):
+
     def embed_battle(self, battle):
         # -1 indicates that the move does not have a base power
         # or is not available
@@ -60,6 +64,7 @@ class SimpleRLPlayer(Gen7EnvSinglePlayer):
 
 
 class MaxDamagePlayer(RandomPlayer):
+
     def choose_move(self, battle):
         # If the player can attack, it will
         if battle.available_moves:
@@ -71,20 +76,49 @@ class MaxDamagePlayer(RandomPlayer):
         else:
             return self.choose_random_move(battle)
 
-NB_TRAINING_STEPS = 100000
-NB_EVALUATION_EPISODES = 100
 
-# variable for naming .csv files.
-# Change this according to whether the training process was carried out against a random player or a max damage player
-TRAINING_OPPONENT = 'RandomPlayer'
+# ADJUST VARIABLES ACCORDINGLY
+NB_TRAINING_STEPS = 20000
+NB_EVALUATION_EPISODES = 1000
+NB_STEPS_WARMUP = 1000
 
+# Change this according to the model specified under #### TRAINING ####
+# for proper naming of the .csv files (train and test logs, results)
+TRAINING_OPPONENT = 'TrainedPlayer'
+
+
+########################## Trained RL Model variables ##########################
+### CHANGE THIS IF YOU'RE NOT USING A SARSA MODEL - REFER TO frozen_rl_player.py FOR MORE DETAILS
+MODEL_NAME = 'SARSA'
+
+### CHANGE THE LOAD MODEL DIRECTORY ACCORDING TO LOCAL SETUP ###
+old_file_name = f"saved_model_{NB_TRAINING_STEPS}"
+loaded_model = tf.keras.models.load_model(old_file_name)
+
+# load saved model into SARSAAgent class
+trained_sarsa_agent = SARSAAgent(
+        model=loaded_model,
+        nb_actions=18,
+        policy=EpsGreedyQPolicy(0.05),
+        nb_steps_warmup=NB_STEPS_WARMUP
+    )
+
+rl_opponent = FrozenRLPlayer(
+    player_configuration=PlayerConfiguration("RLPlayer", "L.M.Montgomery7"),
+    battle_format="gen7randombattle",
+    server_configuration=LocalhostServerConfiguration,
+    trained_rl_model=trained_sarsa_agent,
+    model_name = MODEL_NAME,
+)
+
+# set random seeds
 tf.random.set_seed(0)
 np.random.seed(0)
 
-# This is the function that will be used to train the dqn
-def dqn_training(player, dqn, nb_steps, filename):
+# This is the function that will be used to train the sarsa
+def sarsa_training(player, sarsa, nb_steps, filename):
 
-    model = dqn.fit(player, nb_steps=nb_steps, visualize=False, verbose=2)
+    model = sarsa.fit(player, nb_steps=nb_steps, visualize=False, verbose=2)
 
     # save model history to csv
     save_file = f"{filename}_trainlog_{nb_steps}eps.csv"
@@ -96,10 +130,10 @@ def dqn_training(player, dqn, nb_steps, filename):
     player.complete_current_battle()
 
 
-def dqn_evaluation(player, dqn, nb_episodes, filename):
+def sarsa_evaluation(player, sarsa, nb_episodes, filename):
     # Reset battle statistics
     player.reset_battles()
-    model = dqn.test(player, nb_episodes=nb_episodes, visualize=False, verbose=False)
+    model = sarsa.test(player, nb_episodes=nb_episodes, visualize=False, verbose=False)
 
     # save model history to csv
     save_file = f"{filename}_testlog_{nb_episodes}eps.csv"
@@ -109,28 +143,30 @@ def dqn_evaluation(player, dqn, nb_episodes, filename):
     pd.DataFrame(model.history).to_csv(save_file)
 
     print(
-        "DQN Evaluation: %d victories out of %d episodes"
+        "sarsa Evaluation: %d victories out of %d episodes"
         % (player.n_won_battles, nb_episodes)
     )
 
+
 if __name__ == "__main__":
     env_player = SimpleRLPlayer(
-        player_configuration=PlayerConfiguration("satunicarina", "L.M.Montgomery7"),
+        player_configuration=PlayerConfiguration("RandomPlayer1", "L.M.Montgomery7"),
         battle_format="gen7randombattle",
         server_configuration=LocalhostServerConfiguration,
     )
 
-    opponent = RandomPlayer(
-        player_configuration=PlayerConfiguration("duanicarina", "L.M.Montgomery7"),
+    random_opponent = RandomPlayer(
+        player_configuration=PlayerConfiguration("RandomPlayer2", "L.M.Montgomery7"),
         battle_format="gen7randombattle",
         server_configuration=LocalhostServerConfiguration,
     )
 
-    second_opponent = MaxDamagePlayer(
-        player_configuration=PlayerConfiguration("tiganicarina", "L.M.Montgomery7"),
+    max_opponent = MaxDamagePlayer(
+        player_configuration=PlayerConfiguration("MaxDamagePlayer", "L.M.Montgomery7"),
         battle_format="gen7randombattle",
         server_configuration=LocalhostServerConfiguration,
     )
+
 
     # Output dimension
     n_action = len(env_player.action_space)
@@ -145,35 +181,51 @@ if __name__ == "__main__":
     model.add(Dense(64, activation="elu"))
     model.add(Dense(n_action, activation="linear"))
 
-    memory = SequentialMemory(limit=100000, window_length=1)
-
     # Epsilon greedy
     policy = EpsGreedyQPolicy(0.05)
 
-    # Defining our DQN
-    dqn = SARSAAgent(model=model, nb_actions=n_action, nb_steps_warmup=1000, policy=policy)
+    # Defining our SARSA
+    sarsa = SARSAAgent(
+            model=model,
+            nb_actions=n_action,
+            policy=policy,
+            nb_steps_warmup=NB_STEPS_WARMUP
+        )
+    sarsa.compile(Adam(lr=0.0025), metrics=["mae"])
 
-    dqn.compile(Adam(lr=0.0025), metrics=["mae"])
 
-    # Training
+    ################################# Training #################################
+    print(f"TRAINING AGAINST {TRAINING_OPPONENT}")
+
     env_player.play_against(
-        env_algorithm=dqn_training,
-        opponent=opponent,
-        env_algorithm_kwargs={"dqn": dqn, "nb_steps": NB_TRAINING_STEPS, "filename": TRAINING_OPPONENT},
+        env_algorithm=sarsa_training,
+        opponent=rl_opponent,
+        env_algorithm_kwargs={"sarsa": sarsa, "nb_steps": NB_TRAINING_STEPS, "filename": TRAINING_OPPONENT},
     )
-    model.save("model_%d" % NB_TRAINING_STEPS)
 
-    # Evaluation
+    ############################ Save Trained Model #################################
+    save_file_name = f"saved_model_{NB_TRAINING_STEPS}"
+    print(f"Saving model as {save_file_name}")
+    model.save(save_file_name)
+
+    ################################# Evaluation #################################
     print("Results against random player:")
     env_player.play_against(
-        env_algorithm=dqn_evaluation,
-        opponent=opponent,
-        env_algorithm_kwargs={"dqn": dqn, "nb_episodes": NB_EVALUATION_EPISODES, "filename": f'({TRAINING_OPPONENT}_{NB_TRAINING_STEPS})RandomPlayer'},
+        env_algorithm=sarsa_evaluation,
+        opponent=random_opponent,
+        env_algorithm_kwargs={"sarsa": sarsa, "nb_episodes": NB_EVALUATION_EPISODES, "filename": f'Trained{TRAINING_OPPONENT}({NB_TRAINING_STEPS})vsRandomPlayer'},
     )
 
     print("\nResults against max player:")
     env_player.play_against(
-        env_algorithm=dqn_evaluation,
-        opponent=second_opponent,
-        env_algorithm_kwargs={"dqn": dqn, "nb_episodes": NB_EVALUATION_EPISODES, "filename": f'({TRAINING_OPPONENT}_{NB_TRAINING_STEPS})MaxPlayer'},
+        env_algorithm=sarsa_evaluation,
+        opponent=max_opponent,
+        env_algorithm_kwargs={"sarsa": sarsa, "nb_episodes": NB_EVALUATION_EPISODES, "filename": f'Trained{TRAINING_OPPONENT}({NB_TRAINING_STEPS})vsMaxPlayer'},
+    )
+
+    print("\nResults against frozen rl player:")
+    env_player.play_against(
+        env_algorithm=sarsa_evaluation,
+        opponent=rl_opponent,
+        env_algorithm_kwargs={"sarsa": sarsa, "nb_episodes": NB_EVALUATION_EPISODES, "filename": f'Trained{TRAINING_OPPONENT}({NB_TRAINING_STEPS})vsRLPlayer'},
     )
