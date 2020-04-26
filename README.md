@@ -67,3 +67,4 @@ For a walkthrough on understanding Pokemon Showdown as an RL environment and uti
 + [Training a Pokemon Showdown agent using SARSA](https://medium.com/@vuhuychule/training-a-pok%C3%A9mon-battler-with-sarsa-algorithm-8ddee2c7732a)
 + [Training a Pokemon Showdown agent using DQN](https://medium.com/@hueyninglok/dqn-agent-for-pokemon-showdown-98169ccb50a3)
 + [Training a Pokemon Showdown agent using CEM](https://medium.com/@nicarina98/cross-entropy-method-for-training-a-pokemon-823d3590ae07)
++ [Improving the performance of Pokemon Showdown agents](https://medium.com/@vuhuychule/improving-the-performance-of-your-rl-model-without-learning-more-rl-253c1448182d)
