@@ -6,9 +6,9 @@
 <a href="https://github.com/ambv/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 [![Documentation Status](https://readthedocs.org/projects/poke-env/badge/?version=latest)](https://poke-env.readthedocs.io/en/latest/?badge=latest)
 
-A Python interface for training Reinforcement Learning bots to battle on [Pokemon Showdown](https://pokemonshowdown.com/), a fan-made simulation of Pokemon battling. It is maintained by the [Smogon Community](https://www.smogon.com/) and support singles, doubles, and triples battles in all the games out so far (Generations 1 through 8).
+A Python interface for training Reinforcement Learning bots to battle on [Pokemon Showdown](https://pokemonshowdown.com/), a fan-made simulation of Pokemon battling. It is maintained by the [Smogon Community](https://www.smogon.com/) and supports singles, doubles, and triples battles in all the games out so far (Generations 1 through 8).
 
-This project aims at providing a Python environment for interacting in [Pokemon Showdown](https://pokemonshowdown.com/) battles, with reinforcement learning in mind. Currently, the agents in this project specifically follows the mechanics and rules in Generation 7.
+This project aims at providing a Python environment for interacting in [Pokemon Showdown](https://pokemonshowdown.com/) battles, with reinforcement learning in mind. Currently, the agents in this project specifically follow the mechanics and rules in Generation 7.
 
 This is a group project by [Vu Chu-Le](https://github.com/vuhcl), [Nicole Nair](https://github.com/nicolenair/), and [Huey Ning Lok](https://github.com/hueyning) as part of the Minerva Schools at KGI course IL181.015 - Reinforcement Learning, Spring 2020.
 
